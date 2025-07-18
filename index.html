@@ -500,8 +500,118 @@
 
         .empty-state {
             text-align: center;
-            padding: 40px 20px;
-            color: #86868b;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #007aff 0%, #5ac8fa 100%);
+            border-radius: 20px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .empty-state::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            50% { transform: translate(-50%, -50%) rotate(180deg); }
+        }
+
+        .empty-state-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .empty-state-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .empty-state-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .empty-state-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: white;
+        }
+
+        .empty-state-description {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .empty-state-cta {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .empty-state-cta:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .empty-state-stars {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .star {
+            width: 12px;
+            height: 12px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            animation: twinkle 2s ease-in-out infinite;
+        }
+
+        .star:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .star:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
         }
 
         .confetti-container {
@@ -774,7 +884,26 @@
                             </div>
                         </template>
                         <div x-show="workouts.length === 0" class="empty-state">
-                            Нет тренировок. Создайте первую!
+                            <div class="empty-state-stars">
+                                <div class="star"></div>
+                                <div class="star"></div>
+                                <div class="star"></div>
+                            </div>
+                            <div class="empty-state-content">
+                                <div class="empty-state-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                    </svg>
+                                </div>
+                                <div class="empty-state-title">Начните свой путь!</div>
+                                <div class="empty-state-description">Создайте первую тренировку и начните отслеживать свой прогресс к достижению целей</div>
+                                <button class="empty-state-cta" @click="showModal = true">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 2C13.1 2 14 2.9 14 4V10H20C21.1 10 22 10.9 22 12S21.1 14 20 14H14V20C14 21.1 13.1 22 12 22S10 21.1 10 20V14H4C2.9 14 2 13.1 2 12S2.9 10 4 10H10V4C10 2.9 10.9 2 12 2Z"/>
+                                    </svg>
+                                    Создать тренировку
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="add-workout-section" @click="showModal = true">
