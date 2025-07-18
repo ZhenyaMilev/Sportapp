@@ -614,148 +614,6 @@
             50% { opacity: 1; transform: scale(1.2); }
         }
 
-        .achievements {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        .achievements-header {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #1d1d1f;
-        }
-
-        .badges-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 16px;
-        }
-
-        .achievement-badge {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 16px;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .achievement-badge.earned {
-            background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
-            color: white;
-            transform: scale(1.02);
-            box-shadow: 0 4px 20px rgba(52, 199, 89, 0.3);
-        }
-
-        .achievement-badge.earned::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
-            animation: badgeShimmer 2s ease-in-out infinite;
-        }
-
-        @keyframes badgeShimmer {
-            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
-            50% { transform: translate(-50%, -50%) rotate(180deg); }
-        }
-
-        .achievement-badge.locked {
-            background: #f2f2f7;
-            color: #86868b;
-        }
-
-        .badge-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .achievement-badge.earned .badge-icon {
-            background: rgba(255,255,255,0.2);
-        }
-
-        .achievement-badge.locked .badge-icon {
-            background: #e5e5ea;
-        }
-
-        .badge-icon svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-
-        .badge-title {
-            font-size: 12px;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 4px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .badge-subtitle {
-            font-size: 10px;
-            opacity: 0.8;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-
-        .achievement-badge.earned .badge-title {
-            color: white;
-        }
-
-        .achievement-badge.earned .badge-subtitle {
-            color: rgba(255,255,255,0.8);
-        }
-
-        .achievement-notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
-            color: white;
-            padding: 16px 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(52, 199, 89, 0.4);
-            z-index: 2000;
-            transform: translateX(100%);
-            transition: transform 0.5s ease;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .achievement-notification.show {
-            transform: translateX(0);
-        }
-
-        .achievement-notification .notification-icon {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-
-        .achievement-notification .notification-text {
-            font-size: 14px;
-            font-weight: 500;
-        }
 
         .confetti-container {
             position: fixed;
@@ -1055,20 +913,6 @@
                         </div>
                     </div>
 
-                    <div class="achievements">
-                        <div class="achievements-header">🏆 Достижения</div>
-                        <div class="badges-grid">
-                            <template x-for="achievement in achievements" :key="achievement.id">
-                                <div class="achievement-badge" :class="{ earned: achievement.earned, locked: !achievement.earned }">
-                                    <div class="badge-icon">
-                                        <svg viewBox="0 0 24 24" x-html="achievement.icon"></svg>
-                                    </div>
-                                    <div class="badge-title" x-text="achievement.title"></div>
-                                    <div class="badge-subtitle" x-text="achievement.subtitle"></div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
                 </div>
 
             </div>
@@ -1129,8 +973,6 @@
         function workoutTracker() {
             return {
                 workouts: [],
-                achievements: [],
-                newAchievements: [],
                 showModal: false,
                 showDeleteConfirm: false,
                 deleteWorkoutId: null,
@@ -1168,7 +1010,6 @@
 
                     setTimeout(() => {
                         this.isLoading = false;
-                        this.checkAchievements();
                     }, 1000);
                 },
 
@@ -1237,79 +1078,6 @@
                     });
                 },
 
-                get achievements() {
-                    const pace = this.weeklyPace;
-                    return [
-                        {
-                            id: 'starter',
-                            title: 'Новичок',
-                            subtitle: '1.5/неделю',
-                            icon: '<path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>',
-                            earned: pace >= 1.5,
-                            threshold: 1.5
-                        },
-                        {
-                            id: 'regular',
-                            title: 'Постоянный',
-                            subtitle: '1.75/неделю',
-                            icon: '<path d="M12 2C13.1 2 14 2.9 14 4V10H20C21.1 10 22 10.9 22 12S21.1 14 20 14H14V20C14 21.1 13.1 22 12 22S10 21.1 10 20V14H4C2.9 14 2 13.1 2 12S2.9 10 4 10H10V4C10 2.9 10.9 2 12 2Z"/>',
-                            earned: pace >= 1.75,
-                            threshold: 1.75
-                        },
-                        {
-                            id: 'champion',
-                            title: 'Чемпион',
-                            subtitle: '2/неделю',
-                            icon: '<path d="M5 16L3 5H1L3.5 16H5ZM21 5H19L17 16H18.5L21 5ZM7.5 5L9 16H10.5L12 5H7.5ZM14.5 5L13 16H14.5L16 5H14.5Z"/>',
-                            earned: pace >= 2,
-                            threshold: 2
-                        },
-                        {
-                            id: 'legend',
-                            title: 'Легенда',
-                            subtitle: '2.5/неделю',
-                            icon: '<path d="M12 2L13.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>',
-                            earned: pace >= 2.5,
-                            threshold: 2.5
-                        }
-                    ];
-                },
-
-                checkAchievements() {
-                    const currentPace = this.weeklyPace;
-                    const previouslyEarned = this.newAchievements.length;
-                    
-                    this.achievements.forEach(achievement => {
-                        if (achievement.earned && !this.newAchievements.includes(achievement.id)) {
-                            this.newAchievements.push(achievement.id);
-                            if (previouslyEarned < this.newAchievements.length) {
-                                this.showAchievementNotification(achievement);
-                            }
-                        }
-                    });
-                },
-
-                showAchievementNotification(achievement) {
-                    const notification = document.createElement('div');
-                    notification.className = 'achievement-notification';
-                    notification.innerHTML = `
-                        <svg class="notification-icon" viewBox="0 0 24 24">
-                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                        </svg>
-                        <div class="notification-text">
-                            <div>Достижение разблокировано!</div>
-                            <div>${achievement.title}</div>
-                        </div>
-                    `;
-                    
-                    document.body.appendChild(notification);
-                    
-                    setTimeout(() => notification.classList.add('show'), 100);
-                    setTimeout(() => {
-                        notification.classList.remove('show');
-                        setTimeout(() => notification.remove(), 500);
-                    }, 3000);
-                },
 
                 get paceIndicatorClass() {
                     if (this.weeklyPace >= 2) return 'pace-excellent';
@@ -1337,7 +1105,6 @@
                         this.playSuccessSound();
                         this.createConfetti();
                         this.createEmojiBurst(event);
-                        this.checkAchievements();
                     }
                 },
 
