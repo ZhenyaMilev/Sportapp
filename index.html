@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Трекер Тренировок</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:focus,
+        button:active,
+        .tab:focus,
+        .tab:active,
+        .month-header:focus,
+        .month-header:active {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            min-height: 100vh;
+            padding-bottom: 20px;
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        input {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px 16px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .stat-item {
+            margin-bottom: 16px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #86868b;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .pace-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .pace-excellent {
+            background: #34c759;
+            color: white;
+        }
+
+        .pace-good {
+            background: #ff9500;
+            color: white;
+        }
+
+        .pace-poor {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .workouts-needed {
+            font-size: 14px;
+            color: #ff3b30;
+            margin-top: 8px;
+        }
+
+        .workouts {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .workout-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid #e5e5ea;
+        }
+
+        .workout-item:last-child {
+            border-bottom: none;
+        }
+
+        .workout-info {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .workout-info:hover .workout-name {
+            color: #007aff;
+        }
+
+        .workout-name {
+            font-size: 17px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            transition: color 0.2s;
+        }
+
+        .workout-stats {
+            font-size: 14px;
+            color: #86868b;
+        }
+
+        .workout-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .workout-count {
+            font-size: 20px;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .btn-control {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-minus {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .btn-plus {
+            background: #34c759;
+            color: white;
+            position: relative;
+            overflow: visible;
+        }
+
+        .btn-control:active {
+            transform: scale(0.95);
+        }
+
+        .btn-plus.pulse {
+            animation: pulse 0.5s ease-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .add-workout-section {
+            padding: 16px 0 0 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .btn-add-workout {
+            width: 32px;
+            height: 32px;
+            background: #e5e5ea;
+            color: #86868b;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-workout-section:hover .btn-add-workout {
+            background: #d1d1d6;
+        }
+
+        .add-workout-label {
+            font-size: 14px;
+            color: #86868b;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            background: #e5e5ea;
+            color: #1d1d1f;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            flex: 1;
+            padding: 12px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #007aff;
+            color: white;
+        }
+
+        .history {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .month-group {
+            margin-bottom: 20px;
+        }
+
+        .month-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            cursor: pointer;
+        }
+
+        .month-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .month-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .month-count {
+            background: #007aff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .month-toggle {
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+
+        .month-toggle.open {
+            transform: rotate(180deg);
+        }
+
+        .month-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .month-content.open {
+            max-height: 1000px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e5ea;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: #86868b;
+            margin-bottom: 4px;
+        }
+
+        .history-action {
+            font-size: 15px;
+        }
+
+        .btn-delete-icon {
+            width: 32px;
+            height: 32px;
+            background: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete-icon:active {
+            transform: scale(0.9);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #86868b;
+        }
+
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff3b30;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .emoji-burst {
+            position: absolute;
+            font-size: 40px;
+            animation: emoji-float 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 2001;
+        }
+
+        @keyframes emoji-float {
+            0% {
+                transform: translateY(0) scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-50px) scale(1.5);
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .confirm-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1001;
+        }
+
+        .confirm-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .confirm-text {
+            font-size: 16px;
+            color: #86868b;
+            margin-bottom: 24px;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #86868b;
+        }
+    </style>
+</head>
+<body>
+    <div x-data="workoutTracker()">
+        <div class="container">
+            <div class="header">
+                <h1>Трекер Тренировок</h1>
+            </div>
+
+            <div x-show="!isLoading">
+                <div class="tabs">
+                    <button class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
+                        Дашборд
+                    </button>
+                    <button class="tab" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+                        История
+                    </button>
+                </div>
+
+                <!-- Dashboard -->
+                <div x-show="activeTab === 'dashboard'">
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">Дней с начала года</div>
+                            <div class="stat-value" x-text="daysSinceYearStart"></div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Всего тренировок (с коэффициентами)</div>
+                            <div class="stat-value" x-text="totalWorkoutsWeighted.toFixed(1)"></div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Средний темп в неделю</div>
+                            <div class="stat-value">
+                                <span x-text="weeklyPace.toFixed(2)"></span>
+                                <span class="pace-indicator" 
+                                      :class="paceIndicatorClass" 
+                                      x-text="paceIndicatorText"></span>
+                            </div>
+                            <div x-show="weeklyPace < 2" class="workouts-needed">
+                                Нужно еще <strong x-text="workoutsNeeded.toFixed(1)"></strong> тренировок для темпа 2/нед
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="workouts">
+                        <template x-for="workout in workouts" :key="workout.id">
+                            <div class="workout-item">
+                                <div class="workout-info" @click="confirmDeleteWorkout(workout.id)">
+                                    <div class="workout-name" x-text="workout.name"></div>
+                                    <div class="workout-stats">
+                                        Коэффициент: <span x-text="workout.coefficient"></span>
+                                    </div>
+                                </div>
+                                <div class="workout-controls">
+                                    <button class="btn-control btn-minus" @click="decrementWorkout(workout.id)">−</button>
+                                    <div class="workout-count" x-text="workout.count"></div>
+                                    <button class="btn-control btn-plus" 
+                                            @click="incrementWorkout(workout.id, $event)"
+                                            :id="'plus-btn-' + workout.id">+</button>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="workouts.length === 0" class="empty-state">
+                            Нет тренировок. Создайте первую!
+                        </div>
+                        
+                        <div class="add-workout-section" @click="showModal = true">
+                            <button class="btn-add-workout">+</button>
+                            <span class="add-workout-label">Добавить тренировку</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History -->
+                <div x-show="activeTab === 'history'">
+                    <div class="history">
+                        <template x-for="(monthData, month) in groupedHistory" :key="month">
+                            <div class="month-group">
+                                <div class="month-header" @click="toggleMonth(month)">
+                                    <div class="month-title" x-text="month"></div>
+                                    <div class="month-stats">
+                                        <div class="month-count" x-text="monthData.count.toFixed(1) + ' тренировок'"></div>
+                                        <div class="month-toggle" :class="{ open: monthData.open }">▼</div>
+                                    </div>
+                                </div>
+                                <div class="month-content" :class="{ open: monthData.open }">
+                                    <template x-for="(item, index) in monthData.items" :key="index">
+                                        <div class="history-item">
+                                            <div class="history-info">
+                                                <div class="history-date" x-text="formatDate(item.date)"></div>
+                                                <div class="history-action" x-text="item.action"></div>
+                                            </div>
+                                            <button class="btn-delete-icon" @click="deleteHistoryItem(item.originalIndex)">
+                                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="Object.keys(groupedHistory).length === 0" class="empty-state">
+                            История пуста
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="isLoading" class="loading">
+                Загрузка...
+            </div>
+        </div>
+
+        <!-- Create Workout Modal -->
+        <div class="modal" :class="{ active: showModal }">
+            <div class="modal-content">
+                <div class="modal-header">Новая тренировка</div>
+                <div class="form-group">
+                    <label class="form-label">Название</label>
+                    <input type="text" class="form-input" x-model="newWorkout.name" placeholder="Например: Пробежка">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Коэффициент</label>
+                    <input type="number" class="form-input" x-model.number="newWorkout.coefficient" 
+                           step="0.1" min="0.1" placeholder="1.0">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" @click="closeModal()">Отмена</button>
+                    <button class="btn-primary" @click="createWorkout()">Создать</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div x-show="showDeleteConfirm" class="confirm-modal">
+            <div class="confirm-content">
+                <div class="confirm-title">Удалить тренировку?</div>
+                <div class="confirm-text" x-text="deleteConfirmText"></div>
+                <div class="confirm-actions">
+                    <button class="btn-secondary" @click="showDeleteConfirm = false">Отмена</button>
+                    <button class="btn-primary" style="background: #ff3b30" @click="deleteWorkout()">Удалить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confetti Container -->
+        <div id="confetti-container" class="confetti-container"></div>
+    </div>
+
+    <script>
+        // Supabase configuration - REPLACE WITH YOUR ACTUAL VALUES
+        const SUPABASE_URL = 'https://cqfebpdbdfjpvcizkwbj.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxZmVicGRiZGZqcHZjaXprd2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1OTUxMTYsImV4cCI6MjA2NjE3MTExNn0.YThNyVVozlyTfj0ZqA5p1Z7GRsX8rqEY4GoPT_MZXhM';
+        
+        function workoutTracker() {
+            return {
+                activeTab: 'dashboard',
+                workouts: [],
+                history: [],
+                showModal: false,
+                showDeleteConfirm: false,
+                deleteWorkoutId: null,
+                deleteConfirmText: '',
+                newWorkout: {
+                    name: '',
+                    coefficient: 1.0
+                },
+                monthStates: {},
+                audioContext: null,
+                supabase: null,
+                userId: null,
+                isLoading: true,
+
+                async init() {
+                    // Initialize Supabase
+                    this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    
+                    // Check if user is authenticated
+                    const { data: { user } } = await this.supabase.auth.getUser();
+                    if (user) {
+                        this.userId = user.id;
+                        await this.loadData();
+                    } else {
+                        // For demo purposes, use a default user ID
+                        this.userId = 'default-user';
+                        await this.loadData();
+                    }
+
+                    // Initialize audio context on first user interaction
+                    document.addEventListener('click', () => {
+                        if (!this.audioContext) {
+                            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        }
+                    }, { once: true });
+
+                    this.isLoading = false;
+                },
+
+                async loadData() {
+                    try {
+                        // Load workouts
+                        const { data: workoutsData, error: workoutsError } = await this.supabase
+                            .from('workouts')
+                            .select('*')
+                            .eq('user_id', this.userId)
+                            .order('created_at', { ascending: true });
+
+                        if (workoutsError) throw workoutsError;
+                        this.workouts = workoutsData || [];
+
+                        // Load history
+                        const { data: historyData, error: historyError } = await this.supabase
+                            .from('workout_history')
+                            .select('*')
+                            .eq('user_id', this.userId)
+                            .order('created_at', { ascending: false });
+
+                        if (historyError) throw historyError;
+                        this.history = historyData || [];
+                    } catch (error) {
+                        console.error('Error loading data:', error);
+                        // Fallback to default data
+                        this.workouts = [
+                            { id: 1, name: 'Домашняя тренировка', coefficient: 0.3, count: 0 },
+                            { id: 2, name: 'Пробежка', coefficient: 1.0, count: 0 },
+                            { id: 3, name: 'Спортзал', coefficient: 1.0, count: 0 }
+                        ];
+                    }
+                },
+
+                get daysSinceYearStart() {
+                    const now = new Date();
+                    const yearStart = new Date(2025, 0, 1);
+                    const diff = now - yearStart;
+                    return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+                },
+
+                get totalWorkoutsWeighted() {
+                    return this.workouts.reduce((sum, workout) => {
+                        return sum + (workout.count * workout.coefficient);
+                    }, 0);
+                },
+
+                get weeklyPace() {
+                    const weeks = this.daysSinceYearStart / 7;
+                    return weeks > 0 ? this.totalWorkoutsWeighted / weeks : 0;
+                },
+
+                get workoutsNeeded() {
+                    if (this.weeklyPace >= 2) return 0;
+                    const targetTotal = 2 * (this.daysSinceYearStart / 7);
+                    return targetTotal - this.totalWorkoutsWeighted;
+                },
+
+                get paceIndicatorClass() {
+                    if (this.weeklyPace >= 2) return 'pace-excellent';
+                    if (this.weeklyPace >= 1.5) return 'pace-good';
+                    return 'pace-poor';
+                },
+
+                get paceIndicatorText() {
+                    if (this.weeklyPace >= 2) return 'Отлично!';
+                    if (this.weeklyPace >= 1.5) return 'Нормально';
+                    return 'Мало';
+                },
+
+                get groupedHistory() {
+                    const grouped = {};
+                    const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+                    
+                    this.history.forEach((item, index) => {
+                        const date = new Date(item.created_at || item.date);
+                        const monthYear = `${months[date.getMonth()]} ${date.getFullYear()}`;
+                        
+                        if (!grouped[monthYear]) {
+                            grouped[monthYear] = {
+                                items: [],
+                                count: 0,
+                                open: this.monthStates[monthYear] || false
+                            };
+                        }
+                        
+                        const itemWithIndex = { ...item, originalIndex: index };
+                        grouped[monthYear].items.push(itemWithIndex);
+                        
+                        if (item.action.startsWith('+')) {
+                            const workoutName = item.action.substring(3);
+                            const workout = this.workouts.find(w => w.name === workoutName);
+                            if (workout) {
+                                grouped[monthYear].count += workout.coefficient;
+                            }
+                        }
+                    });
+                    
+                    Object.values(grouped).forEach(monthData => {
+                        monthData.items.sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
+                    });
+                    
+                    return grouped;
+                },
+
+                toggleMonth(month) {
+                    this.monthStates[month] = !this.monthStates[month];
+                },
+
+                async incrementWorkout(id, event) {
+                    const workout = this.workouts.find(w => w.id === id);
+                    if (workout) {
+                        workout.count++;
+                        await this.addHistory(`+1 ${workout.name}`);
+                        await this.updateWorkout(workout);
+                        
+                        const btn = event.target;
+                        btn.classList.add('pulse');
+                        setTimeout(() => btn.classList.remove('pulse'), 500);
+                        
+                        this.playSuccessSound();
+                        this.createConfetti();
+                        this.createEmojiBurst(event);
+                    }
+                },
+
+                async decrementWorkout(id) {
+                    const workout = this.workouts.find(w => w.id === id);
+                    if (workout && workout.count > 0) {
+                        workout.count--;
+                        await this.addHistory(`-1 ${workout.name}`);
+                        await this.updateWorkout(workout);
+                    }
+                },
+
+                async updateWorkout(workout) {
+                    try {
+                        const { error } = await this.supabase
+                            .from('workouts')
+                            .update({ count: workout.count })
+                            .eq('id', workout.id)
+                            .eq('user_id', this.userId);
+
+                        if (error) throw error;
+                    } catch (error) {
+                        console.error('Error updating workout:', error);
+                    }
+                },
+
+                confirmDeleteWorkout(id) {
+                    const workout = this.workouts.find(w => w.id === id);
+                    if (workout) {
+                        this.deleteWorkoutId = id;
+                        if (workout.count > 0) {
+                            this.deleteConfirmText = `Тренировка "${workout.name}" имеет ${workout.count} записей. Все данные будут удалены.`;
+                            this.showDeleteConfirm = true;
+                        } else {
+                            this.deleteConfirmText = `Удалить тренировку "${workout.name}"?`;
+                            this.showDeleteConfirm = true;
+                        }
+                    }
+                },
+
+                async deleteWorkout() {
+                    try {
+                        const { error } = await this.supabase
+                            .from('workouts')
+                            .delete()
+                            .eq('id', this.deleteWorkoutId)
+                            .eq('user_id', this.userId);
+
+                        if (error) throw error;
+
+                        const index = this.workouts.findIndex(w => w.id === this.deleteWorkoutId);
+                        if (index !== -1) {
+                            this.workouts.splice(index, 1);
+                        }
+                    } catch (error) {
+                        console.error('Error deleting workout:', error);
+                    }
+
+                    this.showDeleteConfirm = false;
+                    this.deleteWorkoutId = null;
+                },
+
+                async createWorkout() {
+                    if (this.newWorkout.name && this.newWorkout.coefficient > 0) {
+                        try {
+                            const { data, error } = await this.supabase
+                                .from('workouts')
+                                .insert({
+                                    user_id: this.userId,
+                                    name: this.newWorkout.name,
+                                    coefficient: this.newWorkout.coefficient,
+                                    count: 0
+                                })
+                                .select()
+                                .single();
+
+                            if (error) throw error;
+                            this.workouts.push(data);
+                            this.closeModal();
+                        } catch (error) {
+                            console.error('Error creating workout:', error);
+                        }
+                    }
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                    this.newWorkout = { name: '', coefficient: 1.0 };
+                },
+
+                async addHistory(action) {
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('workout_history')
+                            .insert({
+                                user_id: this.userId,
+                                action: action
+                            })
+                            .select()
+                            .single();
+
+                        if (error) throw error;
+                        this.history.unshift(data);
+                    } catch (error) {
+                        console.error('Error adding history:', error);
+                    }
+                },
+
+                async deleteHistoryItem(index) {
+                    const item = this.history[index];
+                    if (item && item.id) {
+                        try {
+                            const { error } = await this.supabase
+                                .from('workout_history')
+                                .delete()
+                                .eq('id', item.id)
+                                .eq('user_id', this.userId);
+
+                            if (error) throw error;
+                            this.history.splice(index, 1);
+                        } catch (error) {
+                            console.error('Error deleting history item:', error);
+                        }
+                    }
+                },
+
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    const options = { 
+                        day: 'numeric', 
+                        month: 'short', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    };
+                    return date.toLocaleString('ru-RU', options);
+                },
+
+                playSuccessSound() {
+                    if (!this.audioContext) return;
+                    
+                    const oscillator1 = this.audioContext.createOscillator();
+                    const oscillator2 = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    // Create a pleasant two-tone chime
+                    oscillator1.frequency.setValueAtTime(523.25, this.audioContext.currentTime); // C5
+                    oscillator2.frequency.setValueAtTime(659.25, this.audioContext.currentTime); // E5
+                    
+                    oscillator1.frequency.exponentialRampToValueAtTime(783.99, this.audioContext.currentTime + 0.1); // G5
+                    oscillator2.frequency.exponentialRampToValueAtTime(1046.50, this.audioContext.currentTime + 0.1); // C6
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                    
+                    oscillator1.start(this.audioContext.currentTime);
+                    oscillator2.start(this.audioContext.currentTime);
+                    oscillator1.stop(this.audioContext.currentTime + 0.3);
+                    oscillator2.stop(this.audioContext.currentTime + 0.3);
+                },
+
+                createConfetti() {
+                    const container = document.getElementById('confetti-container');
+                    const colors = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#5ac8fa', '#007aff', '#5856d6', '#af52de'];
+                    const confettiCount = 80;
+                    
+                    for (let i = 0; i < confettiCount; i++) {
+                        setTimeout(() => {
+                            const confetti = document.createElement('div');
+                            confetti.className = 'confetti';
+                            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                            confetti.style.left = Math.random() * 100 + '%';
+                            confetti.style.width = Math.random() * 10 + 5 + 'px';
+                            confetti.style.height = confetti.style.width;
+                            confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                            confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                            confetti.style.animationDuration = 2 + Math.random() * 1 + 's';
+                            container.appendChild(confetti);
+                            
+                            setTimeout(() => confetti.remove(), 3000);
+                        }, i * 20);
+                    }
+                },
+
+                createEmojiBurst(event) {
+                    const emojis = ['💪', '🔥', '⭐', '🎯', '🏃', '💯', '🎉', '🚀'];
+                    const emoji = document.createElement('div');
+                    emoji.className = 'emoji-burst';
+                    emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    emoji.style.left = event.pageX + 'px';
+                    emoji.style.top = event.pageY + 'px';
+                    document.body.appendChild(emoji);
+                    
+                    setTimeout(() => emoji.remove(), 2000);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
