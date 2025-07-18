@@ -114,10 +114,50 @@
             color: white;
         }
 
-        .workouts-needed {
+        .progress-stages {
             font-size: 14px;
-            color: #ff3b30;
             margin-top: 8px;
+        }
+
+        .stage-item {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 13px;
+        }
+
+        .stage-label {
+            margin-right: 8px;
+            min-width: 100px;
+        }
+
+        .stage-bar {
+            flex: 1;
+            height: 4px;
+            background: #e5e5ea;
+            border-radius: 2px;
+            margin-right: 8px;
+            overflow: hidden;
+        }
+
+        .stage-progress {
+            height: 100%;
+            background: #007aff;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .stage-count {
+            font-weight: 600;
+            color: #007aff;
+        }
+
+        .stage-item.completed .stage-progress {
+            background: #34c759;
+        }
+
+        .stage-item.completed .stage-count {
+            color: #34c759;
         }
 
         .workouts {
@@ -567,16 +607,13 @@
 
             <div x-show="!isLoading">
                 <div class="tabs">
-                    <button class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
+                    <button class="tab active">
                         Дашборд
-                    </button>
-                    <button class="tab" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
-                        История
                     </button>
                 </div>
 
                 <!-- Dashboard -->
-                <div x-show="activeTab === 'dashboard'">
+                <div>
                     <div class="stats">
                         <div class="stat-item">
                             <div class="stat-label">Дней с начала года</div>
@@ -594,8 +631,16 @@
                                       :class="paceIndicatorClass" 
                                       x-text="paceIndicatorText"></span>
                             </div>
-                            <div x-show="weeklyPace < 2" class="workouts-needed">
-                                Нужно еще <strong x-text="workoutsNeeded.toFixed(1)"></strong> тренировок для темпа 2/нед
+                            <div class="progress-stages">
+                                <template x-for="stage in progressStages" :key="stage.target">
+                                    <div class="stage-item" :class="{ completed: stage.completed }">
+                                        <div class="stage-label" x-text="stage.label"></div>
+                                        <div class="stage-bar">
+                                            <div class="stage-progress" :style="{ width: stage.progressPercent + '%' }"></div>
+                                        </div>
+                                        <div class="stage-count" x-text="stage.remaining > 0 ? stage.remaining.toFixed(1) : '✓'"></div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -629,41 +674,6 @@
                     </div>
                 </div>
 
-                <!-- History -->
-                <div x-show="activeTab === 'history'">
-                    <div class="history">
-                        <template x-for="(monthData, month) in groupedHistory" :key="month">
-                            <div class="month-group">
-                                <div class="month-header" @click="toggleMonth(month)">
-                                    <div class="month-title" x-text="month"></div>
-                                    <div class="month-stats">
-                                        <div class="month-count" x-text="monthData.count.toFixed(1) + ' тренировок'"></div>
-                                        <div class="month-toggle" :class="{ open: monthData.open }">▼</div>
-                                    </div>
-                                </div>
-                                <div class="month-content" :class="{ open: monthData.open }">
-                                    <template x-for="(item, index) in monthData.items" :key="index">
-                                        <div class="history-item">
-                                            <div class="history-info">
-                                                <div class="history-date" x-text="formatDate(item.date)"></div>
-                                                <div class="history-action" x-text="item.action"></div>
-                                            </div>
-                                            <button class="btn-delete-icon" @click="deleteHistoryItem(item.originalIndex)">
-                                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                                                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
-                        <div x-show="Object.keys(groupedHistory).length === 0" class="empty-state">
-                            История пуста
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div x-show="isLoading" class="loading">
@@ -714,9 +724,7 @@
         
         function workoutTracker() {
             return {
-                activeTab: 'dashboard',
                 workouts: [],
-                history: [],
                 showModal: false,
                 showDeleteConfirm: false,
                 deleteWorkoutId: null,
@@ -725,7 +733,6 @@
                     name: '',
                     coefficient: 1.0
                 },
-                monthStates: {},
                 audioContext: null,
                 supabase: null,
                 userId: null,
@@ -768,15 +775,6 @@
                         if (workoutsError) throw workoutsError;
                         this.workouts = workoutsData || [];
 
-                        // Load history
-                        const { data: historyData, error: historyError } = await this.supabase
-                            .from('workout_history')
-                            .select('*')
-                            .eq('user_id', this.userId)
-                            .order('created_at', { ascending: false });
-
-                        if (historyError) throw historyError;
-                        this.history = historyData || [];
                     } catch (error) {
                         console.error('Error loading data:', error);
                         // Fallback to default data
@@ -806,10 +804,28 @@
                     return weeks > 0 ? this.totalWorkoutsWeighted / weeks : 0;
                 },
 
-                get workoutsNeeded() {
-                    if (this.weeklyPace >= 2) return 0;
-                    const targetTotal = 2 * (this.daysSinceYearStart / 7);
-                    return targetTotal - this.totalWorkoutsWeighted;
+                get progressStages() {
+                    const weeks = this.daysSinceYearStart / 7;
+                    const stages = [
+                        { target: 1.5, label: '1.5/нед' },
+                        { target: 1.75, label: '1.75/нед' },
+                        { target: 2, label: '2/нед' },
+                        { target: 2.5, label: '2.5/нед' }
+                    ];
+                    
+                    return stages.map(stage => {
+                        const targetTotal = stage.target * weeks;
+                        const remaining = Math.max(0, targetTotal - this.totalWorkoutsWeighted);
+                        const completed = remaining === 0;
+                        const progressPercent = Math.min(100, (this.totalWorkoutsWeighted / targetTotal) * 100);
+                        
+                        return {
+                            ...stage,
+                            remaining,
+                            completed,
+                            progressPercent
+                        };
+                    });
                 },
 
                 get paceIndicatorClass() {
@@ -824,51 +840,11 @@
                     return 'Мало';
                 },
 
-                get groupedHistory() {
-                    const grouped = {};
-                    const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
-                                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-                    
-                    this.history.forEach((item, index) => {
-                        const date = new Date(item.created_at || item.date);
-                        const monthYear = `${months[date.getMonth()]} ${date.getFullYear()}`;
-                        
-                        if (!grouped[monthYear]) {
-                            grouped[monthYear] = {
-                                items: [],
-                                count: 0,
-                                open: this.monthStates[monthYear] || false
-                            };
-                        }
-                        
-                        const itemWithIndex = { ...item, originalIndex: index };
-                        grouped[monthYear].items.push(itemWithIndex);
-                        
-                        if (item.action.startsWith('+')) {
-                            const workoutName = item.action.substring(3);
-                            const workout = this.workouts.find(w => w.name === workoutName);
-                            if (workout) {
-                                grouped[monthYear].count += workout.coefficient;
-                            }
-                        }
-                    });
-                    
-                    Object.values(grouped).forEach(monthData => {
-                        monthData.items.sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
-                    });
-                    
-                    return grouped;
-                },
-
-                toggleMonth(month) {
-                    this.monthStates[month] = !this.monthStates[month];
-                },
 
                 async incrementWorkout(id, event) {
                     const workout = this.workouts.find(w => w.id === id);
                     if (workout) {
                         workout.count++;
-                        await this.addHistory(`+1 ${workout.name}`);
                         await this.updateWorkout(workout);
                         
                         const btn = event.target;
@@ -885,7 +861,6 @@
                     const workout = this.workouts.find(w => w.id === id);
                     if (workout && workout.count > 0) {
                         workout.count--;
-                        await this.addHistory(`-1 ${workout.name}`);
                         await this.updateWorkout(workout);
                     }
                 },
@@ -968,52 +943,6 @@
                     this.newWorkout = { name: '', coefficient: 1.0 };
                 },
 
-                async addHistory(action) {
-                    try {
-                        const { data, error } = await this.supabase
-                            .from('workout_history')
-                            .insert({
-                                user_id: this.userId,
-                                action: action
-                            })
-                            .select()
-                            .single();
-
-                        if (error) throw error;
-                        this.history.unshift(data);
-                    } catch (error) {
-                        console.error('Error adding history:', error);
-                    }
-                },
-
-                async deleteHistoryItem(index) {
-                    const item = this.history[index];
-                    if (item && item.id) {
-                        try {
-                            const { error } = await this.supabase
-                                .from('workout_history')
-                                .delete()
-                                .eq('id', item.id)
-                                .eq('user_id', this.userId);
-
-                            if (error) throw error;
-                            this.history.splice(index, 1);
-                        } catch (error) {
-                            console.error('Error deleting history item:', error);
-                        }
-                    }
-                },
-
-                formatDate(dateString) {
-                    const date = new Date(dateString);
-                    const options = { 
-                        day: 'numeric', 
-                        month: 'short', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    };
-                    return date.toLocaleString('ru-RU', options);
-                },
 
                 playSuccessSound() {
                     if (!this.audioContext) return;
