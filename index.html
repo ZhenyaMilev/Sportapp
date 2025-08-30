@@ -396,6 +396,27 @@
             color: white;
         }
 
+        .settings-section {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .btn-settings {
+            background: #f5f5f7;
+            color: #86868b;
+            border: 1px solid #e5e5ea;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-settings:hover {
+            background: #e5e5ea;
+            color: #1d1d1f;
+        }
+
         .history {
             background: white;
             border-radius: 16px;
@@ -708,7 +729,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #f5f5f7;
+            background: #f5f5f7; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -829,6 +850,25 @@
         <div class="container">
             <div class="header">
                 <h1>Трекер Тренировок</h1>
+                
+                <div class="tabs">
+                    <button class="tab" 
+                            :class="{ active: currentUser === 'zhenja' }"
+                            @click="switchUser('zhenja')">
+                        Женя
+                    </button>
+                    <button class="tab" 
+                            :class="{ active: currentUser === 'marina' }"
+                            @click="switchUser('marina')">
+                        Марина
+                    </button>
+                </div>
+                
+                <div class="settings-section">
+                    <button class="btn-settings" @click="showSettings = true">
+                        ⚙️ Настройки
+                    </button>
+                </div>
             </div>
 
             <div x-show="!isLoading" class="content-fade-in">
@@ -837,8 +877,8 @@
                 <div>
                     <div class="stats">
                         <div class="stat-item">
-                            <div class="stat-label">Дней с начала года</div>
-                            <div class="stat-value" x-text="daysSinceYearStart"></div>
+                            <div class="stat-label">Дней с даты старта</div>
+                            <div class="stat-value" x-text="daysSinceStart"></div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">Всего тренировок (с коэффициентами)</div>
@@ -949,6 +989,27 @@
             </div>
         </div>
 
+        <!-- Settings Modal -->
+        <div class="modal" :class="{ active: showSettings }">
+            <div class="modal-content">
+                <div class="modal-header">Настройки</div>
+                <div class="form-group">
+                    <label class="form-label">Дата старта</label>
+                    <input type="date" class="form-input" 
+                           x-model="userSettings.start_date" 
+                           :value="userSettings?.start_date">
+                </div>
+                <div class="form-group">
+                    <div class="form-label">Текущий пользователь</div>
+                    <div style="font-size: 16px; color: #007aff;" x-text="currentUser === 'zhenja' ? 'Женя' : 'Марина'"></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" @click="cancelSettings()">Отмена</button>
+                    <button class="btn-primary" @click="saveSettings()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Delete Confirmation Modal -->
         <div x-show="showDeleteConfirm" class="confirm-modal">
             <div class="confirm-content">
@@ -975,6 +1036,7 @@
                 workouts: [],
                 showModal: false,
                 showDeleteConfirm: false,
+                showSettings: false,
                 deleteWorkoutId: null,
                 deleteConfirmText: '',
                 newWorkout: {
@@ -984,22 +1046,17 @@
                 audioContext: null,
                 supabase: null,
                 userId: null,
+                currentUser: 'zhenja',
+                userSettings: null,
                 isLoading: true,
 
                 async init() {
                     // Initialize Supabase
                     this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                     
-                    // Check if user is authenticated
-                    const { data: { user } } = await this.supabase.auth.getUser();
-                    if (user) {
-                        this.userId = user.id;
-                        await this.loadData();
-                    } else {
-                        // For demo purposes, use a default user ID
-                        this.userId = 'default-user';
-                        await this.loadData();
-                    }
+                    // Set user ID based on current user selection
+                    this.updateUserId();
+                    await this.loadData();
 
                     // Initialize audio context on first user interaction
                     document.addEventListener('click', () => {
@@ -1013,8 +1070,40 @@
                     }, 1000);
                 },
 
+                updateUserId() {
+                    this.userId = this.currentUser === 'zhenja' ? 'default-user' : 'marina-user';
+                },
+
+                async switchUser(user) {
+                    if (this.currentUser !== user) {
+                        this.isLoading = true;
+                        this.currentUser = user;
+                        this.updateUserId();
+                        await this.loadData();
+                        setTimeout(() => {
+                            this.isLoading = false;
+                        }, 500);
+                    }
+                },
+
                 async loadData() {
                     try {
+                        // Load user settings
+                        const { data: settingsData, error: settingsError } = await this.supabase
+                            .from('user_settings')
+                            .select('*')
+                            .eq('user_id', this.userId)
+                            .single();
+
+                        if (settingsError && settingsError.code !== 'PGRST116') {
+                            throw settingsError;
+                        }
+                        
+                        this.userSettings = settingsData || {
+                            user_id: this.userId,
+                            start_date: this.currentUser === 'zhenja' ? '2025-01-01' : new Date().toISOString().split('T')[0]
+                        };
+
                         // Load workouts
                         const { data: workoutsData, error: workoutsError } = await this.supabase
                             .from('workouts')
@@ -1028,6 +1117,10 @@
                     } catch (error) {
                         console.error('Error loading data:', error);
                         // Fallback to default data
+                        this.userSettings = {
+                            user_id: this.userId,
+                            start_date: this.currentUser === 'zhenja' ? '2025-01-01' : new Date().toISOString().split('T')[0]
+                        };
                         this.workouts = [
                             { id: 1, name: 'Домашняя тренировка', coefficient: 0.3, count: 0 },
                             { id: 2, name: 'Пробежка', coefficient: 1.0, count: 0 },
@@ -1036,11 +1129,12 @@
                     }
                 },
 
-                get daysSinceYearStart() {
+                get daysSinceStart() {
+                    if (!this.userSettings || !this.userSettings.start_date) return 1;
                     const now = new Date();
-                    const yearStart = new Date(2025, 0, 1);
-                    const diff = now - yearStart;
-                    return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+                    const startDate = new Date(this.userSettings.start_date);
+                    const diff = now - startDate;
+                    return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
                 },
 
                 get totalWorkoutsWeighted() {
@@ -1050,12 +1144,12 @@
                 },
 
                 get weeklyPace() {
-                    const weeks = this.daysSinceYearStart / 7;
+                    const weeks = this.daysSinceStart / 7;
                     return weeks > 0 ? this.totalWorkoutsWeighted / weeks : 0;
                 },
 
                 get progressStages() {
-                    const weeks = this.daysSinceYearStart / 7;
+                    const weeks = this.daysSinceStart / 7;
                     const stages = [
                         { target: 1.5, label: '1.5/нед' },
                         { target: 1.75, label: '1.75/нед' },
@@ -1255,6 +1349,38 @@
                     document.body.appendChild(emoji);
                     
                     setTimeout(() => emoji.remove(), 2000);
+                },
+
+                cancelSettings() {
+                    this.showSettings = false;
+                    // Reload original settings
+                    this.loadData();
+                },
+
+                async saveSettings() {
+                    try {
+                        if (!this.userSettings.start_date) return;
+                        
+                        // Try to update existing settings
+                        const { data, error: updateError } = await this.supabase
+                            .from('user_settings')
+                            .upsert({
+                                user_id: this.userId,
+                                start_date: this.userSettings.start_date,
+                                updated_at: new Date().toISOString()
+                            })
+                            .select()
+                            .single();
+
+                        if (updateError) throw updateError;
+                        
+                        this.userSettings = data;
+                        this.showSettings = false;
+                        
+                    } catch (error) {
+                        console.error('Error saving settings:', error);
+                        alert('Ошибка сохранения настроек');
+                    }
                 }
             };
         }
