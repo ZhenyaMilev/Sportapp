@@ -6,6 +6,8 @@
     <title>Трекер Тренировок</title>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -389,11 +391,27 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .tab.active {
             background: #007aff;
             color: white;
+        }
+
+        .tab-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .tab.active .tab-avatar {
+            border-color: white;
         }
 
         .settings-section {
@@ -729,60 +747,114 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #f5f5f7; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            overflow: hidden;
         }
 
-        .apple-logo {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 30px;
-            opacity: 0;
-            animation: logoFadeIn 1s ease-out 0.5s forwards;
+        .loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+            animation: gradientShift 4s ease-in-out infinite alternate;
         }
 
-        @keyframes logoFadeIn {
-            0% {
-                opacity: 0;
-                transform: scale(0.8);
+        @keyframes gradientShift {
+            0% { 
+                background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
             }
-            100% {
-                opacity: 1;
-                transform: scale(1);
+            100% { 
+                background: radial-gradient(circle at 80% 30%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 20% 70%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                            radial-gradient(circle at 60% 20%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
             }
         }
 
-        .spinner {
+        .loading-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .loading-logo {
             width: 40px;
             height: 40px;
-            border: 3px solid #e5e5ea;
-            border-top: 3px solid #007aff;
+            margin: 0 auto 50px auto;
+            position: relative;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            font-size: 17px;
-            color: #86868b;
-            font-weight: 400;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             opacity: 0;
-            animation: textFadeIn 1s ease-out 1s forwards;
+            animation: logoWow 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s forwards;
         }
 
-        @keyframes textFadeIn {
+        @keyframes logoWow {
+            0% { 
+                opacity: 0;
+                transform: scale(0) rotate(-180deg);
+                border-radius: 50%;
+            }
+            60% { 
+                opacity: 1;
+                transform: scale(1.2) rotate(0deg);
+                border-radius: 20%;
+            }
+            100% { 
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+                border-radius: 50%;
+            }
+        }
+
+        .loading-logo::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            animation: centerPulse 1.5s ease-out 1s infinite;
+        }
+
+        @keyframes centerPulse {
+            0% { 
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+
+        .loading-title {
+            font-size: 32px;
+            font-weight: 300;
+            color: white;
+            margin-bottom: 16px;
+            opacity: 0;
+            letter-spacing: 2px;
+            animation: textSlideIn 0.8s ease-out 0.8s forwards;
+        }
+
+        @keyframes textSlideIn {
             0% {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(30px);
             }
             100% {
                 opacity: 1;
@@ -790,42 +862,29 @@
             }
         }
 
-        .loading-progress {
-            width: 200px;
-            height: 4px;
-            background: #e5e5ea;
-            border-radius: 2px;
-            margin-top: 20px;
-            overflow: hidden;
+        .loading-subtitle {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 50px;
             opacity: 0;
-            animation: progressFadeIn 1s ease-out 1.5s forwards;
+            animation: textSlideIn 0.8s ease-out 1.2s forwards;
         }
 
-        @keyframes progressFadeIn {
-            0% {
-                opacity: 0;
-                transform: translateY(10px);
+
+        .loading-overlay-exit {
+            animation: overlayExit 0.8s ease-in-out forwards;
+        }
+
+        @keyframes overlayExit {
+            0% { 
+                opacity: 1; 
+                transform: scale(1);
             }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
+            100% { 
+                opacity: 0; 
+                transform: scale(1.1);
+                pointer-events: none;
             }
-        }
-
-        .loading-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #007aff, #5ac8fa);
-            border-radius: 2px;
-            width: 0;
-            animation: progressBar 2s ease-out forwards;
-        }
-
-        @keyframes progressBar {
-            0% { width: 0%; }
-            25% { width: 30%; }
-            50% { width: 60%; }
-            75% { width: 85%; }
-            100% { width: 100%; }
         }
 
         .content-fade-in {
@@ -855,11 +914,21 @@
                     <button class="tab" 
                             :class="{ active: currentUser === 'zhenja' }"
                             @click="switchUser('zhenja')">
+                        <img x-show="getUserAvatar('zhenja')" 
+                             :src="getUserAvatar('zhenja')" 
+                             alt="Женя" 
+                             class="tab-avatar"
+                             onerror="this.style.display='none'">
                         Женя
                     </button>
                     <button class="tab" 
                             :class="{ active: currentUser === 'marina' }"
                             @click="switchUser('marina')">
+                        <img x-show="getUserAvatar('marina')" 
+                             :src="getUserAvatar('marina')" 
+                             alt="Марина" 
+                             class="tab-avatar"
+                             onerror="this.style.display='none'">
                         Марина
                     </button>
                 </div>
@@ -875,7 +944,7 @@
 
                 <!-- Dashboard -->
                 <div>
-                    <div class="stats">
+                    <div class="stats" data-aos="fade-up" data-aos-duration="600">
                         <div class="stat-item">
                             <div class="stat-label">Дней с даты старта</div>
                             <div class="stat-value" x-text="daysSinceStart"></div>
@@ -887,12 +956,13 @@
                         <div class="stat-item">
                             <div class="stat-label">Средний темп в неделю</div>
                             <div class="stat-value">
-                                <span x-text="weeklyPace.toFixed(2)"></span>
+                                <span x-show="hasSufficientData" x-text="weeklyPace.toFixed(2)"></span>
+                                <span x-show="!hasSufficientData">—</span>
                                 <span class="pace-indicator" 
                                       :class="paceIndicatorClass" 
                                       x-text="paceIndicatorText"></span>
                             </div>
-                            <div class="progress-stages">
+                            <div x-show="hasSufficientData" class="progress-stages">
                                 <template x-for="stage in progressStages" :key="stage.target">
                                     <div class="stage-item" :class="{ completed: stage.completed }">
                                         <div class="stage-label" x-text="stage.label"></div>
@@ -903,10 +973,18 @@
                                     </div>
                                 </template>
                             </div>
+                            <div x-show="!hasSufficientData" class="progress-stages">
+                                <div class="insufficient-data-message">
+                                    <div style="font-size: 14px; color: #86868b; text-align: center; padding: 20px;">
+                                        📊 Детальная статистика появится с 8-го дня<br>
+                                        <small>Должна пройти минимум неделя для расчета темпа</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="workouts">
+                    <div class="workouts" data-aos="fade-up" data-aos-duration="600" data-aos-delay="200">
                         <template x-for="workout in workouts" :key="workout.id">
                             <div class="workout-item">
                                 <div class="workout-info" @click="confirmDeleteWorkout(workout.id)">
@@ -957,14 +1035,11 @@
 
             </div>
 
-            <div x-show="isLoading" class="loading">
-                <svg class="apple-logo" viewBox="0 0 24 24" fill="#1d1d1f">
-                    <path d="M12 2C10.73 2 9.6 2.8 9.6 4.8V6.4C9.6 7.4 10.2 8 11.2 8H12.8C13.8 8 14.4 7.4 14.4 6.4V4.8C14.4 2.8 13.27 2 12 2M8 9C6.9 9 6 9.9 6 11V19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V11C18 9.9 17.1 9 16 9H8M12 11C13.1 11 14 11.9 14 13S13.1 15 12 15 10 14.1 10 13 10.9 11 12 11M12 17C13.66 17 15 15.66 15 14H9C9 15.66 10.34 17 12 17Z"/>
-                </svg>
-                <div class="spinner"></div>
-                <div class="loading-text">Загрузка тренировок...</div>
-                <div class="loading-progress">
-                    <div class="loading-progress-bar"></div>
+            <div x-show="isLoading" class="loading" :class="{ 'loading-overlay-exit': !isLoading }">
+                <div class="loading-container">
+                    <div class="loading-logo"></div>
+                    <div class="loading-title">Трекер Тренировок</div>
+                    <div class="loading-subtitle">Загружаем ваши достижения</div>
                 </div>
             </div>
         </div>
@@ -998,6 +1073,20 @@
                     <input type="date" class="form-input" 
                            x-model="userSettings.start_date" 
                            :value="userSettings?.start_date">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Аватар (ссылка на изображение)</label>
+                    <input type="url" class="form-input" 
+                           x-model="userSettings.avatar_url" 
+                           :value="userSettings?.avatar_url"
+                           placeholder="https://example.com/avatar.jpg">
+                </div>
+                <div class="form-group" x-show="userSettings?.avatar_url">
+                    <div class="form-label">Предварительный просмотр</div>
+                    <img :src="userSettings?.avatar_url" 
+                         alt="Аватар" 
+                         style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #e5e5ea;"
+                         onerror="this.style.display='none'">
                 </div>
                 <div class="form-group">
                     <div class="form-label">Текущий пользователь</div>
@@ -1048,6 +1137,7 @@
                 userId: null,
                 currentUser: 'zhenja',
                 userSettings: null,
+                allUserSettings: {}, // Кэш настроек всех пользователей
                 isLoading: true,
 
                 async init() {
@@ -1057,6 +1147,7 @@
                     // Set user ID based on current user selection
                     this.updateUserId();
                     await this.loadData();
+                    await this.loadAllUserSettings();
 
                     // Initialize audio context on first user interaction
                     document.addEventListener('click', () => {
@@ -1065,9 +1156,25 @@
                         }
                     }, { once: true });
 
+                    // Минималистичный, но кинематографичный загрузочный экран
                     setTimeout(() => {
-                        this.isLoading = false;
-                    }, 1000);
+                        const loadingElement = document.querySelector('.loading');
+                        if (loadingElement) {
+                            loadingElement.classList.add('loading-overlay-exit');
+                        }
+                        setTimeout(() => {
+                            this.isLoading = false;
+                            // Инициализируем AOS после загрузки контента
+                            this.$nextTick(() => {
+                                AOS.init({
+                                    duration: 600,
+                                    easing: 'ease-out-cubic',
+                                    once: true,
+                                    offset: 50
+                                });
+                            });
+                        }, 800);
+                    }, 1800); // Показываем загрузочный экран 1.8 секунды
                 },
 
                 updateUserId() {
@@ -1076,14 +1183,58 @@
 
                 async switchUser(user) {
                     if (this.currentUser !== user) {
-                        this.isLoading = true;
-                        this.currentUser = user;
-                        this.updateUserId();
-                        await this.loadData();
-                        setTimeout(() => {
-                            this.isLoading = false;
-                        }, 500);
+                        // Добавляем красивый переход
+                        const content = document.querySelector('.content-fade-in');
+                        if (content) {
+                            content.style.opacity = '0';
+                            content.style.transform = 'translateY(20px)';
+                        }
+                        
+                        setTimeout(async () => {
+                            this.currentUser = user;
+                            this.updateUserId();
+                            await this.loadData();
+                            
+                            // Восстанавливаем контент с анимацией
+                            if (content) {
+                                content.style.transition = 'all 0.6s ease-out';
+                                content.style.opacity = '1';
+                                content.style.transform = 'translateY(0)';
+                                
+                                // Обновляем AOS анимации
+                                this.$nextTick(() => {
+                                    AOS.refresh();
+                                });
+                            }
+                        }, 300);
                     }
+                },
+
+                async loadAllUserSettings() {
+                    try {
+                        // Загружаем настройки для всех пользователей
+                        const { data, error } = await this.supabase
+                            .from('user_settings')
+                            .select('*')
+                            .in('user_id', ['default-user', 'marina-user']);
+
+                        if (error) throw error;
+                        
+                        // Сохраняем в кэш
+                        this.allUserSettings = {};
+                        if (data) {
+                            data.forEach(settings => {
+                                const user = settings.user_id === 'default-user' ? 'zhenja' : 'marina';
+                                this.allUserSettings[user] = settings;
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading all user settings:', error);
+                    }
+                },
+
+                getUserAvatar(user) {
+                    return this.allUserSettings[user]?.avatar_url || null;
                 },
 
                 async loadData() {
@@ -1144,8 +1295,13 @@
                 },
 
                 get weeklyPace() {
+                    if (this.daysSinceStart < 8) return null; // Блокируем до 8-го дня
                     const weeks = this.daysSinceStart / 7;
                     return weeks > 0 ? this.totalWorkoutsWeighted / weeks : 0;
+                },
+
+                get hasSufficientData() {
+                    return this.daysSinceStart >= 8;
                 },
 
                 get progressStages() {
@@ -1174,12 +1330,14 @@
 
 
                 get paceIndicatorClass() {
+                    if (!this.hasSufficientData) return 'pace-poor';
                     if (this.weeklyPace >= 2) return 'pace-excellent';
                     if (this.weeklyPace >= 1.5) return 'pace-good';
                     return 'pace-poor';
                 },
 
                 get paceIndicatorText() {
+                    if (!this.hasSufficientData) return 'Должна пройти минимум неделя';
                     if (this.weeklyPace >= 2) return 'Отлично!';
                     if (this.weeklyPace >= 1.5) return 'Нормально';
                     return 'Мало';
@@ -1361,25 +1519,46 @@
                     try {
                         if (!this.userSettings.start_date) return;
                         
-                        // Try to update existing settings
-                        const { data, error: updateError } = await this.supabase
+                        // First try to update existing record
+                        const { data: updateData, error: updateError } = await this.supabase
                             .from('user_settings')
-                            .upsert({
-                                user_id: this.userId,
+                            .update({
                                 start_date: this.userSettings.start_date,
+                                avatar_url: this.userSettings.avatar_url,
                                 updated_at: new Date().toISOString()
                             })
+                            .eq('user_id', this.userId)
                             .select()
                             .single();
 
-                        if (updateError) throw updateError;
+                        if (updateError && updateError.code === 'PGRST116') {
+                            // Record doesn't exist, create it
+                            const { data: insertData, error: insertError } = await this.supabase
+                                .from('user_settings')
+                                .insert({
+                                    user_id: this.userId,
+                                    start_date: this.userSettings.start_date,
+                                    avatar_url: this.userSettings.avatar_url
+                                })
+                                .select()
+                                .single();
+
+                            if (insertError) throw insertError;
+                            this.userSettings = insertData;
+                        } else if (updateError) {
+                            throw updateError;
+                        } else {
+                            this.userSettings = updateData;
+                        }
                         
-                        this.userSettings = data;
+                        // Обновляем кэш аватаров
+                        await this.loadAllUserSettings();
+                        
                         this.showSettings = false;
                         
                     } catch (error) {
                         console.error('Error saving settings:', error);
-                        alert('Ошибка сохранения настроек');
+                        alert('Ошибка сохранения настроек: ' + error.message);
                     }
                 }
             };
